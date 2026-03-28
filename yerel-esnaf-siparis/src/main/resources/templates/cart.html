@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sepet - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+<header>
+    <div class="container">
+        <h1>Esnaf</h1>
+        <nav>
+            <a th:href="@{/}">Ana Sayfa</a>
+            
+            <!-- Giriş yapmamış kullanıcılar için -->
+            <span sec:authorize="!isAuthenticated()">
+                <a th:href="@{/login}">Giriş</a>
+                <a th:href="@{/register}">Kayıt Ol</a>
+            </span>
+            
+            <!-- MÜŞTERİ menüsü -->
+            <span sec:authorize="hasRole('CUSTOMER')">
+                <a th:href="@{/cart}">Sepet</a>
+                <a th:href="@{/orders}">Siparişlerim</a>
+                <a th:href="@{/profile}"> Profil</a>
+                <a th:href="@{/logout}">Çıkış</a>
+            </span>
+            
+            <!-- ESNAF menüsü -->
+            <span sec:authorize="hasRole('SHOP_OWNER')">
+                <a th:href="@{/my-products}">Ürünlerim</a>
+                <a th:href="@{/shop-orders}">Siparişler</a>
+                <a th:href="@{/dashboard}">📊 Dashboard</a>
+                <a th:href="@{/profile}"> Profil</a>
+                <a th:href="@{/logout}">Çıkış</a>
+            </span>
+            
+            <!-- ADMIN menüsü -->
+            <span sec:authorize="hasRole('ADMIN')">
+                <a th:href="@{/admin}">👑 Admin</a>
+                <a th:href="@{/logout}">Çıkış</a>
+            </span>
+        </nav>
+    </div>
+</header>
+
+<main class="container">
+    <section class="products">
+        <h3>Sepetiniz</h3>
+        <div id="cartContainer" class="product-grid">
+            <!-- Sepet öğeleri JS ile gelecek -->
+        </div>
+        <div id="cartSummary" style="margin-top: 1rem; display: none;">
+            <!-- Kupon Uygulama -->
+            <div style="background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="couponInput" placeholder="Kupon kodunu girin" style="flex: 1; padding: 0.8rem; border: 1px solid #e0e0e0; border-radius: 5px;" />
+                    <button id="applyCouponBtn" class="test-button" style="background: #28a745;">Uygula</button>
+                </div>
+                <div id="couponMessage" style="margin-top: 0.5rem; font-size: 0.9rem;"></div>
+            </div>
+            
+            <!-- Toplam -->
+            <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Ara Toplam:</span>
+                    <span id="cartSubtotal">₺0.00</span>
+                </div>
+                <div id="discountRow" style="display: none; justify-content: space-between; margin-bottom: 0.5rem; color: #28a745;">
+                    <span>İndirim (<span id="discountPercent"></span>):</span>
+                    <span id="cartDiscount">-₺0.00</span>
+                </div>
+                <hr style="border: none; border-top: 2px solid #e0e0e0; margin: 0.8rem 0;" />
+                <div style="display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: bold;">
+                    <span>Toplam:</span>
+                    <span id="cartTotal">₺0.00</span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 1rem; display:flex; gap: 1rem;">
+                <button id="clearCartBtn" class="test-button danger">Sepeti Temizle</button>
+                <button id="checkoutBtn" class="test-button">Siparişi Ver</button>
+            </div>
+        </div>
+        <div id="emptyCart" class="loading">Sepetiniz boş.</div>
+    </section>
+</main>
+
+<footer>
+    <div class="container">
+        <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+    </div>
+</footer>
+
+    <script th:src="@{/script.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            renderCart();
+            
+            const clearBtn = document.getElementById('clearCartBtn');
+            if (clearBtn) clearBtn.addEventListener('click', () => { clearCart(); renderCart(); });
+            
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            if (checkoutBtn) checkoutBtn.addEventListener('click', () => {
+                if (cart.length === 0) {
+                    alert('Sepetiniz boş!');
+                    return;
+                }
+                processCheckout();
+            });
+            
+            // Kupon uygulama butonu
+            const applyCouponBtn = document.getElementById('applyCouponBtn');
+            if (applyCouponBtn) {
+                applyCouponBtn.addEventListener('click', applyCoupon);
+            }
+            
+            // Kupon input Enter tuşu
+            const couponInput = document.getElementById('couponInput');
+            if (couponInput) {
+                couponInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        applyCoupon();
+                    }
+                });
+            }
+            
+            document.getElementById('cartContainer').addEventListener('click', function(e){
+                if (e.target.matches('[data-action="inc"]')) {
+                    const id = Number(e.target.closest('[data-id]').dataset.id);
+                    changeQuantity(id, 1);
+                    renderCart();
+                }
+                if (e.target.matches('[data-action="dec"]')) {
+                    const id = Number(e.target.closest('[data-id]').dataset.id);
+                    changeQuantity(id, -1);
+                    renderCart();
+                }
+                if (e.target.matches('[data-action="remove"]')) {
+                    const id = Number(e.target.closest('[data-id]').dataset.id);
+                    removeFromCart(id);
+                    renderCart();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siparişlerim - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                
+                <!-- Giriş yapmamış kullanıcılar için -->
+                <span sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}">Giriş</a>
+                    <a th:href="@{/register}">Kayıt Ol</a>
+                </span>
+                
+                <!-- MÜŞTERİ menüsü -->
+                <span sec:authorize="hasRole('CUSTOMER')">
+                    <a th:href="@{/cart}">Sepet</a>
+                    <a th:href="@{/orders}">Siparişlerim</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ESNAF menüsü -->
+                <span sec:authorize="hasRole('SHOP_OWNER')">
+                    <a th:href="@{/my-products}">Ürünlerim</a>
+                    <a th:href="@{/shop-orders}">Siparişler</a>
+                    <a th:href="@{/dashboard}">📊 Dashboard</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ADMIN menüsü -->
+                <span sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin}">👑 Admin</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="products">
+            <h3>Siparişlerim</h3>
+            
+            <div th:if="${orders == null || #lists.isEmpty(orders)}" class="loading">
+                Henüz siparişiniz bulunmuyor.
+            </div>
+            
+            <div th:if="${orders != null && !#lists.isEmpty(orders)}" class="orders-list">
+                <div th:each="order : ${orders}" class="order-card">
+                    <div class="order-header">
+                        <h4>Sipariş #<span th:text="${order.id}">1</span></h4>
+                        <span class="order-status" th:text="${order.status}">Hazırlanıyor</span>
+                    </div>
+                    
+                    <div class="order-date">
+                        <strong>Tarih:</strong> 
+                        <span th:if="${order.orderDate != null}" th:text="${order.orderDate}">01/01/2025 12:00</span>
+                        <span th:if="${order.orderDate == null}">-</span>
+                    </div>
+                    
+                    <div class="order-items" th:if="${order.items != null && !#lists.isEmpty(order.items)}">
+                        <strong>Ürünler:</strong>
+                        <ul>
+                            <li th:each="item : ${order.items}" th:if="${item != null && item.product != null}">
+                                <span th:text="${item.product.name}">Ürün Adı</span> - 
+                                <span th:text="${item.quantity}">1</span> adet x 
+                                ₺<span th:text="${#numbers.formatDecimal(item.priceSnapshot, 1, 2)}">0.00</span>
+                                = ₺<span th:text="${#numbers.formatDecimal(item.priceSnapshot * item.quantity, 1, 2)}">0.00</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="order-items" th:if="${order.items == null || #lists.isEmpty(order.items)}">
+                        <strong>Ürünler:</strong> <span style="color: #999;">Ürün bilgisi yüklenemedi</span>
+                    </div>
+                    
+                    <div class="order-total">
+                        <strong>Toplam:</strong> 
+                        ₺<span th:text="${orderTotals != null && orderTotals[order.id] != null ? #numbers.formatDecimal(orderTotals[order.id], 1, 2) : '0.00'}">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+</body>
+</html>

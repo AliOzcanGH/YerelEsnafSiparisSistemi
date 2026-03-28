@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                
+                <!-- Giriş yapmamış kullanıcılar için -->
+                <span sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}">Giriş</a>
+                    <a th:href="@{/register}">Kayıt Ol</a>
+                </span>
+                
+                <!-- MÜŞTERİ menüsü -->
+                <span sec:authorize="hasRole('CUSTOMER')">
+                    <a th:href="@{/cart}">Sepet</a>
+                    <a th:href="@{/orders}">Siparişlerim</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ESNAF menüsü -->
+                <span sec:authorize="hasRole('SHOP_OWNER')">
+                    <a th:href="@{/my-products}">Ürünlerim</a>
+                    <a th:href="@{/shop-orders}">Siparişler</a>
+                    <a th:href="@{/dashboard}">📊 Dashboard</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ADMIN menüsü -->
+                <span sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin}">👑 Admin</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2>Yerel Esnaflardan Sipariş Verin</h2>
+            <p>Mahallenizdeki esnafların ürünlerini keşfedin ve kolayca sipariş verin.</p>
+        </section>
+
+        <!-- Arama ve Filtreler -->
+        <section class="search-filters">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder=" Ürün ara..." />
+            </div>
+            
+            <div class="category-filters" id="categoryFilters">
+                <button class="category-btn active" data-category="all">
+                     Tümü
+                </button>
+                <!-- Kategoriler JavaScript ile yüklenecek -->
+            </div>
+            
+            <div class="advanced-filters">
+                <div class="filter-group">
+                    <label>Fiyat Aralığı:</label>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="number" id="minPrice" placeholder="Min" style="width: 80px;" />
+                        <span>-</span>
+                        <input type="number" id="maxPrice" placeholder="Max" style="width: 80px;" />
+                        <button id="applyPriceFilter" class="btn-small">Uygula</button>
+                    </div>
+                </div>
+                
+                <div class="filter-checkbox">
+                    <input type="checkbox" id="stockFilter" />
+                    <label for="stockFilter">Sadece Stokta Olanlar</label>
+                </div>
+            </div>
+        </section>
+
+        <section class="products">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;" id="productTitle">Tüm Ürünler</h3>
+                <div id="productCount" style="color: #666;">Yükleniyor...</div>
+            </div>
+            <div class="product-grid" id="productGrid">
+                <!-- Ürünler JavaScript ile yüklenecek -->
+                <div class="loading">Ürünler yükleniyor...</div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+
+    <script th:src="@{/script.js}"></script>
+</body>
+</html>

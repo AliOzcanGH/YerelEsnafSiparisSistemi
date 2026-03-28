@@ -1,0 +1,38 @@
+# IDE ve editör ayarları
+.vscode/
+.idea/
+*.iml
+
+# Build ve target klasörleri
+/target/
+/out/
+
+# Maven wrapper
+/.mvn/wrapper/maven-wrapper.properties
+
+# Maven local repository (eğer yanlışlıkla eklenirse)
+/.mvn/
+*.log
+
+# OS dosyaları
+.DS_Store
+Thumbs.db
+
+# Database dosyaları
+*.db
+*.sqlite
+*.h2.db
+
+# Spring Boot temp / logs
+*.log
+logs/
+spring.log
+
+# Paketlenmiş jar/war/ear
+*.jar
+*.war
+*.ear
+
+# Diğer geçici dosyalar
+*.class
+*.tmp

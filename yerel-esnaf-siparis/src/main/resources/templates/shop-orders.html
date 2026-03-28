@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sipariş Yönetimi - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+    <style>
+        .order-management {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .filters label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .filters select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .orders-grid {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .order-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .order-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .order-id {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .order-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-Hazırlanıyor {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-Yolda {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .status-Teslim-Edildi {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-İptal {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .order-date {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .customer-info {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .customer-info strong {
+            color: #495057;
+        }
+        
+        .order-items {
+            margin-bottom: 15px;
+        }
+        
+        .order-items h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #495057;
+        }
+        
+        .item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .item-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .item-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .item-name {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .item-details {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .item-price {
+            font-weight: 600;
+            color: #27ae60;
+        }
+        
+        .order-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-top: 2px solid #f0f0f0;
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .status-select {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .btn-update {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .btn-update:hover {
+            background: #2980b9;
+        }
+        
+        .empty-state {
+            background: white;
+            padding: 60px 40px;
+            border-radius: 8px;
+            text-align: center;
+            color: #999;
+        }
+        
+        .empty-state h3 {
+            margin: 0 0 10px 0;
+            color: #666;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .highlight-items {
+            background: #fff9e6;
+            border-left: 3px solid #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                
+                <!-- Giriş yapmamış kullanıcılar için -->
+                <span sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}">Giriş</a>
+                    <a th:href="@{/register}">Kayıt Ol</a>
+                </span>
+                
+                <!-- MÜŞTERİ menüsü -->
+                <span sec:authorize="hasRole('CUSTOMER')">
+                    <a th:href="@{/cart}">Sepet</a>
+                    <a th:href="@{/orders}">Siparişlerim</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ESNAF menüsü -->
+                <span sec:authorize="hasRole('SHOP_OWNER')">
+                    <a th:href="@{/my-products}">Ürünlerim</a>
+                    <a th:href="@{/shop-orders}">Siparişler</a>
+                    <a th:href="@{/dashboard}">📊 Dashboard</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ADMIN menüsü -->
+                <span sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin}">👑 Admin</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="order-management">
+        <h2>Sipariş Yönetimi</h2>
+        
+        <div class="stats" id="statsContainer">
+            <div class="stat-card">
+                <div class="stat-number" id="totalOrders">0</div>
+                <div class="stat-label">Toplam Sipariş</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="preparingOrders">0</div>
+                <div class="stat-label">Hazırlanıyor</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="onTheWayOrders">0</div>
+                <div class="stat-label">Yolda</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="deliveredOrders">0</div>
+                <div class="stat-label">Teslim Edildi</div>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <label for="statusFilter">Durum Filtresi:</label>
+            <select id="statusFilter" onchange="filterOrders()">
+                <option value="all">Tümü</option>
+                <option value="Hazırlanıyor">Hazırlanıyor</option>
+                <option value="Yolda">Yolda</option>
+                <option value="Teslim Edildi">Teslim Edildi</option>
+                <option value="İptal">İptal</option>
+            </select>
+        </div>
+
+        <div class="orders-grid" id="ordersContainer">
+            <div class="empty-state">
+                <h3>Yükleniyor...</h3>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = '/api';
+        let allOrders = [];
+        let currentUser = null;
+
+        // Sayfa yüklendiğinde siparişleri getir
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DEBUG: DOMContentLoaded - shop-orders page loaded');
+            loadShopOrders();
+        });
+        
+        // Sayfa yüklendiğinde de kontrol et
+        if (document.readyState === 'loading') {
+            console.log('DEBUG: Document still loading');
+        } else {
+            console.log('DEBUG: Document already loaded');
+            loadShopOrders();
+        }
+
+        // Esnafın siparişlerini yükle
+        async function loadShopOrders() {
+            console.log('DEBUG: loadShopOrders function called');
+            console.log('DEBUG: API_BASE:', API_BASE);
+            const url = `${API_BASE}/orders/shop-orders`;
+            console.log('DEBUG: Loading shop orders from:', url);
+            
+            try {
+                console.log('DEBUG: About to fetch...');
+                const response = await fetch(url, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                console.log('DEBUG: Response received');
+                console.log('DEBUG: Response status:', response.status, 'OK:', response.ok);
+                console.log('DEBUG: Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('DEBUG: Error response text:', errorText);
+                    let error;
+                    try {
+                        error = JSON.parse(errorText);
+                    } catch (e) {
+                        error = { error: errorText };
+                    }
+                    console.error('DEBUG: Error response:', error);
+                    showError(error.error || 'Siparişler yüklenirken hata oluştu');
+                    return;
+                }
+                
+                const jsonData = await response.json();
+                console.log('DEBUG: Received orders data:', jsonData);
+                console.log('DEBUG: Orders type:', typeof jsonData);
+                console.log('DEBUG: Is array:', Array.isArray(jsonData));
+                console.log('DEBUG: Orders count:', jsonData ? (Array.isArray(jsonData) ? jsonData.length : 'NOT ARRAY') : 0);
+                
+                allOrders = Array.isArray(jsonData) ? jsonData : [];
+                console.log('DEBUG: allOrders set to:', allOrders);
+                
+                if (allOrders.length > 0) {
+                    console.log('DEBUG: First order:', JSON.stringify(allOrders[0], null, 2));
+                    console.log('DEBUG: First order items:', allOrders[0].items);
+                    console.log('DEBUG: First order items count:', allOrders[0].items ? allOrders[0].items.length : 0);
+                } else {
+                    console.log('DEBUG: No orders in array');
+                }
+                
+                updateStats();
+                renderOrders(allOrders);
+            } catch (error) {
+                console.error('DEBUG: Exception in loadShopOrders:', error);
+                console.error('DEBUG: Error stack:', error.stack);
+                showError('Siparişler yüklenirken hata oluştu: ' + error.message);
+            }
+        }
+
+        // İstatistikleri güncelle
+        function updateStats() {
+            document.getElementById('totalOrders').textContent = allOrders.length;
+            document.getElementById('preparingOrders').textContent = 
+                allOrders.filter(o => o.status === 'Hazırlanıyor').length;
+            document.getElementById('onTheWayOrders').textContent = 
+                allOrders.filter(o => o.status === 'Yolda').length;
+            document.getElementById('deliveredOrders').textContent = 
+                allOrders.filter(o => o.status === 'Teslim Edildi').length;
+        }
+
+        // Siparişleri filtrele
+        function filterOrders() {
+            const filter = document.getElementById('statusFilter').value;
+            
+            if (filter === 'all') {
+                renderOrders(allOrders);
+            } else {
+                const filtered = allOrders.filter(order => order.status === filter);
+                renderOrders(filtered);
+            }
+        }
+
+        // Siparişleri listele
+        function renderOrders(orders) {
+            console.log('DEBUG: renderOrders called with:', orders);
+            const container = document.getElementById('ordersContainer');
+            
+            if (!orders || orders.length === 0) {
+                console.log('DEBUG: No orders to render');
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Sipariş bulunamadı</h3>
+                        <p>Henüz ürünlerinize sipariş verilmemiş veya filtreye uygun sipariş yok.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            console.log('DEBUG: Rendering', orders.length, 'orders');
+
+            const ordersHTML = orders.map(order => {
+                const total = calculateOrderTotal(order);
+                const statusClass = `status-${order.status.replace(' ', '-')}`;
+                const hasMyProducts = checkMyProducts(order);
+                const cardClass = hasMyProducts ? 'order-card highlight-items' : 'order-card';
+                
+                return `
+                    <div class="${cardClass}">
+                        <div class="order-header">
+                            <div class="order-id">Sipariş #${order.id}</div>
+                            <div class="order-status ${statusClass}">${order.status}</div>
+                        </div>
+                        
+                        <div class="order-date">
+                            <strong>Tarih:</strong> ${formatDate(order.orderDate)}
+                        </div>
+                        
+                        <div class="customer-info">
+                            <strong>Müşteri:</strong> ${order.customer ? order.customer.username : 'Bilinmiyor'}
+                        </div>
+                        
+                        <div class="order-items">
+                            <h4>Sipariş İçeriği</h4>
+                            <ul class="item-list">
+                                ${order.items && order.items.length > 0 ? 
+                                    order.items.map(item => {
+                                        if (!item || !item.product) return '';
+                                        return `
+                                            <li>
+                                                <div>
+                                                    <div class="item-name">${item.product.name}</div>
+                                                    <div class="item-details">${item.quantity} adet × ₺${item.priceSnapshot.toFixed(2)}</div>
+                                                </div>
+                                                <div class="item-price">₺${(item.quantity * item.priceSnapshot).toFixed(2)}</div>
+                                            </li>
+                                        `;
+                                    }).join('') 
+                                    : '<li>Ürün bilgisi yok</li>'
+                                }
+                            </ul>
+                        </div>
+                        
+                        <div class="order-total">
+                            <span>Toplam Tutar:</span>
+                            <span>₺${total.toFixed(2)}</span>
+                        </div>
+                        
+                        <div class="order-actions">
+                            <select class="status-select" id="status-${order.id}">
+                                <option value="Hazırlanıyor" ${order.status === 'Hazırlanıyor' ? 'selected' : ''}>Hazırlanıyor</option>
+                                <option value="Yolda" ${order.status === 'Yolda' ? 'selected' : ''}>Yolda</option>
+                                <option value="Teslim Edildi" ${order.status === 'Teslim Edildi' ? 'selected' : ''}>Teslim Edildi</option>
+                                <option value="İptal" ${order.status === 'İptal' ? 'selected' : ''}>İptal</option>
+                            </select>
+                            <button class="btn-update" onclick="updateOrderStatus(${order.id})">Güncelle</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = ordersHTML;
+        }
+
+        // Sipariş toplamını hesapla
+        function calculateOrderTotal(order) {
+            if (!order.items || order.items.length === 0) return 0;
+            
+            return order.items.reduce((total, item) => {
+                if (!item) return total;
+                return total + (item.quantity * item.priceSnapshot);
+            }, 0);
+        }
+
+        // Siparişte esnafın ürünü var mı kontrol et
+        function checkMyProducts(order) {
+            // Bu basit versiyonda tüm siparişler esnafa ait kabul ediliyor
+            // Çünkü backend zaten sadece esnafın ürünlerini içeren siparişleri döndürüyor
+            return true;
+        }
+
+        // Sipariş durumunu güncelle
+        async function updateOrderStatus(orderId) {
+            const newStatus = document.getElementById(`status-${orderId}`).value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    showError(error.error || 'Durum güncellenirken hata oluştu');
+                    return;
+                }
+
+                showSuccess('Sipariş durumu güncellendi!');
+                loadShopOrders(); // Listeyi yenile
+            } catch (error) {
+                showError('Bir hata oluştu');
+            }
+        }
+
+        // Tarih formatlama
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('tr-TR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Başarı mesajı
+        function showSuccess(message) {
+            alert(message);
+        }
+
+        // Hata mesajı
+        function showError(message) {
+            alert('Hata: ' + message);
+            document.getElementById('ordersContainer').innerHTML = `
+                <div class="empty-state">
+                    <h3>Hata</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
+

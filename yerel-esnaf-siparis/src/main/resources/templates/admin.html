@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Paneli - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+    <style>
+        .admin-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .tab-btn {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            text-align: left;
+        }
+        
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .badge-customer { background: #e3f2fd; color: #1976d2; }
+        .badge-shop { background: #f3e5f5; color: #7b1fa2; }
+        .badge-admin { background: #fff3e0; color: #e65100; }
+        
+        .category-form {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .category-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .category-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .category-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                
+                <!-- Giriş yapmamış kullanıcılar için -->
+                <span sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}">Giriş</a>
+                    <a th:href="@{/register}">Kayıt Ol</a>
+                </span>
+                
+                <!-- MÜŞTERİ menüsü -->
+                <span sec:authorize="hasRole('CUSTOMER')">
+                    <a th:href="@{/cart}">Sepet</a>
+                    <a th:href="@{/orders}">Siparişlerim</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ESNAF menüsü -->
+                <span sec:authorize="hasRole('SHOP_OWNER')">
+                    <a th:href="@{/my-products}">Ürünlerim</a>
+                    <a th:href="@{/shop-orders}">Siparişler</a>
+                    <a th:href="@{/dashboard}">📊 Dashboard</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ADMIN menüsü -->
+                <span sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin}">👑 Admin</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 style="margin-bottom: 2rem;">👑 Admin Paneli</h2>
+        
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('users')">👥 Kullanıcılar</button>
+            <button class="tab-btn" onclick="switchTab('categories')">📂 Kategoriler</button>
+            <button class="tab-btn" onclick="switchTab('coupons')">🎟️ Kuponlar</button>
+        </div>
+        
+        <!-- Kullanıcılar Tab -->
+        <div id="users-tab" class="tab-content active">
+            <div class="data-table">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Kullanıcı Adı</th>
+                            <th>E-posta</th>
+                            <th>Rol</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="5" style="text-align: center;">Yükleniyor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Kategoriler Tab -->
+        <div id="categories-tab" class="tab-content">
+            <div class="category-form">
+                <h3>Yeni Kategori Ekle</h3>
+                <form id="categoryForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div class="form-group">
+                        <label>Kategori Adı</label>
+                        <input type="text" id="catName" required />
+                    </div>
+                    <div class="form-group">
+                        <label>İkon (Emoji)</label>
+                        <input type="text" id="catIcon" placeholder="📦" />
+                    </div>
+                    <div class="form-group">
+                        <label>Açıklama</label>
+                        <input type="text" id="catDesc" />
+                    </div>
+                    <button type="submit" class="btn">Ekle</button>
+                </form>
+            </div>
+            
+            <div class="category-grid" id="categoriesGrid">
+                <div style="grid-column: 1 / -1; text-align: center; color: #666;">
+                    Kategoriler yükleniyor...
+                </div>
+            </div>
+        </div>
+        
+        <!-- Kuponlar Tab -->
+        <div id="coupons-tab" class="tab-content">
+            <div class="category-form">
+                <h3>Yeni Kupon Oluştur</h3>
+                <form id="couponForm" style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div class="form-group">
+                        <label>Kupon Kodu</label>
+                        <input type="text" id="couponCode" required placeholder="INDIRIM10" />
+                    </div>
+                    <div class="form-group">
+                        <label>İndirim (%)</label>
+                        <input type="number" id="couponDiscount" min="1" max="100" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Son Kullanım Tarihi</label>
+                        <input type="date" id="couponExpiry" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum Tutar</label>
+                        <input type="number" id="couponMinAmount" step="0.01" value="0" />
+                    </div>
+                    <button type="submit" class="btn">Oluştur</button>
+                </form>
+            </div>
+            
+            <div class="data-table">
+                <table id="couponsTable">
+                    <thead>
+                        <tr>
+                            <th>Kod</th>
+                            <th>İndirim</th>
+                            <th>Min. Tutar</th>
+                            <th>Son Kullanım</th>
+                            <th>Aktif</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6" style="text-align: center;">Yükleniyor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+
+    <script th:src="@{/script.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUsers();
+            loadCategories();
+            loadCoupons();
+            
+            document.getElementById('categoryForm').addEventListener('submit', handleCategorySubmit);
+            document.getElementById('couponForm').addEventListener('submit', handleCouponSubmit);
+        });
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/admin/users');
+                const users = await response.json();
+                
+                const tbody = document.querySelector('#usersTable tbody');
+                tbody.innerHTML = users.map(user => `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td>${user.email || '-'}</td>
+                        <td><span class="badge badge-${user.role.toLowerCase()}">${getRoleName(user.role)}</span></td>
+                        <td>
+                            <button class="btn-small" style="background: #e74c3c;" onclick="deleteUser(${user.id})">Sil</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Hata:', error);
+            }
+        }
+
+        function getRoleName(role) {
+            const roles = { 'CUSTOMER': 'Müşteri', 'SHOP_OWNER': 'Esnaf', 'ADMIN': 'Admin' };
+            return roles[role] || role;
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?\n\nBu işlem kullanıcıya ait tüm ürünleri ve siparişleri de silecektir.')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showMessage(result.message || 'Kullanıcı başarıyla silindi', 'success');
+                    loadUsers();
+                } else {
+                    showMessage(result.error || 'Kullanıcı silinirken hata oluştu', 'error');
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Silme işlemi başarısız: ' + error.message, 'error');
+            }
+        }
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories');
+                const categories = await response.json();
+                
+                const grid = document.getElementById('categoriesGrid');
+                grid.innerHTML = categories.map(cat => `
+                    <div class="category-card">
+                        <div class="category-icon">${cat.icon || '📦'}</div>
+                        <div style="font-weight: 500; margin-bottom: 0.5rem;">${cat.name}</div>
+                        <div style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">${cat.description || ''}</div>
+                        <button class="btn-small" style="background: #e74c3c; width: 100%;" onclick="deleteCategory(${cat.id})">Sil</button>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Hata:', error);
+            }
+        }
+
+        async function handleCategorySubmit(e) {
+            e.preventDefault();
+            
+            const data = {
+                name: document.getElementById('catName').value,
+                icon: document.getElementById('catIcon').value,
+                description: document.getElementById('catDesc').value
+            };
+
+            try {
+                const response = await fetch('/api/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showMessage('Kategori eklendi!', 'success');
+                    e.target.reset();
+                    loadCategories();
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Kategori eklenemedi', 'error');
+            }
+        }
+
+        async function deleteCategory(catId) {
+            if (!confirm('Bu kategoriyi silmek istediğinize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch(`/api/categories/${catId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showMessage('Kategori silindi', 'success');
+                    loadCategories();
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Silme işlemi başarısız', 'error');
+            }
+        }
+
+        async function loadCoupons() {
+            try {
+                const response = await fetch('/api/coupons');
+                const coupons = await response.json();
+                
+                const tbody = document.querySelector('#couponsTable tbody');
+                tbody.innerHTML = coupons.map(coupon => `
+                    <tr>
+                        <td><strong>${coupon.code}</strong></td>
+                        <td>%${coupon.discountPercentage}</td>
+                        <td>₺${coupon.minAmount ? coupon.minAmount.toFixed(2) : '0.00'}</td>
+                        <td>${new Date(coupon.expiryDate).toLocaleDateString('tr-TR')}</td>
+                        <td>${coupon.active ? '✅ Aktif' : '❌ Pasif'}</td>
+                        <td>
+                            <button class="btn-small" style="background: ${coupon.active ? '#ffc107' : '#28a745'};" onclick="toggleCoupon(${coupon.id}, ${!coupon.active})">
+                                ${coupon.active ? 'Pasifleştir' : 'Aktifleştir'}
+                            </button>
+                            <button class="btn-small" style="background: #e74c3c;" onclick="deleteCoupon(${coupon.id})">Sil</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Hata:', error);
+            }
+        }
+
+        async function handleCouponSubmit(e) {
+            e.preventDefault();
+            
+            const data = {
+                code: document.getElementById('couponCode').value,
+                discountPercentage: parseInt(document.getElementById('couponDiscount').value),
+                expiryDate: new Date(document.getElementById('couponExpiry').value),
+                minAmount: parseFloat(document.getElementById('couponMinAmount').value),
+                active: true
+            };
+
+            try {
+                const response = await fetch('/api/coupons', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showMessage('Kupon oluşturuldu!', 'success');
+                    e.target.reset();
+                    loadCoupons();
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Kupon oluşturulamadı', 'error');
+            }
+        }
+
+        async function toggleCoupon(couponId, active) {
+            try {
+                const response = await fetch(`/api/coupons/${couponId}/toggle`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ active: active })
+                });
+
+                if (response.ok) {
+                    showMessage('Kupon durumu güncellendi', 'success');
+                    loadCoupons();
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Güncelleme başarısız', 'error');
+            }
+        }
+
+        async function deleteCoupon(couponId) {
+            if (!confirm('Bu kuponu silmek istediğinize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch(`/api/coupons/${couponId}`, { method: 'DELETE' });
+                if (response.ok) {
+                    showMessage('Kupon silindi', 'success');
+                    loadCoupons();
+                }
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Silme işlemi başarısız', 'error');
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        canvas {
+            max-height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                
+                <!-- Giriş yapmamış kullanıcılar için -->
+                <span sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}">Giriş</a>
+                    <a th:href="@{/register}">Kayıt Ol</a>
+                </span>
+                
+                <!-- MÜŞTERİ menüsü -->
+                <span sec:authorize="hasRole('CUSTOMER')">
+                    <a th:href="@{/cart}">Sepet</a>
+                    <a th:href="@{/orders}">Siparişlerim</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ESNAF menüsü -->
+                <span sec:authorize="hasRole('SHOP_OWNER')">
+                    <a th:href="@{/my-products}">Ürünlerim</a>
+                    <a th:href="@{/shop-orders}">Siparişler</a>
+                    <a th:href="@{/dashboard}">📊 Dashboard</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ADMIN menüsü -->
+                <span sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin}">👑 Admin</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <h2 style="margin-bottom: 2rem;">📊 İstatistiklerim</h2>
+        
+        <!-- İstatistik Kartları -->
+        <div class="dashboard-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-number">-</div>
+                <div class="stat-label">Yükleniyor...</div>
+            </div>
+        </div>
+        
+        <!-- Grafikler -->
+        <div class="chart-container">
+            <h3>📈 Son 7 Günlük Satışlar</h3>
+            <canvas id="salesChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <h3>🏆 En Çok Satan Ürünler (Top 5)</h3>
+            <canvas id="productsChart"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+
+    <script th:src="@{/script.js}"></script>
+    <script>
+        let salesChart, productsChart;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/dashboard/shop-owner');
+                if (!response.ok) throw new Error('Dashboard yüklenemedi');
+                
+                const data = await response.json();
+                displayStats(data);
+                displayCharts(data);
+            } catch (error) {
+                console.error('Hata:', error);
+                showMessage('Dashboard yüklenirken hata oluştu', 'error');
+            }
+        }
+
+        function displayStats(data) {
+            const grid = document.getElementById('statsGrid');
+            
+            grid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">₺${(data.totalRevenue || 0).toFixed(2)}</div>
+                    <div class="stat-label">Toplam Gelir</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${data.totalOrders || 0}</div>
+                    <div class="stat-label">Toplam Sipariş</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${data.totalProducts || 0}</div>
+                    <div class="stat-label">Toplam Ürün</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${data.lowStockCount || 0}</div>
+                    <div class="stat-label">Düşük Stok</div>
+                </div>
+            `;
+        }
+
+        function displayCharts(data) {
+            // Satış grafiği
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            if (salesChart) salesChart.destroy();
+            
+            const salesData = data.dailySales || {};
+            const salesLabels = Object.keys(salesData);
+            const salesValues = Object.values(salesData);
+            
+            salesChart = new Chart(salesCtx, {
+                type: 'line',
+                data: {
+                    labels: salesLabels,
+                    datasets: [{
+                        label: 'Günlük Satış (₺)',
+                        data: salesValues,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // En çok satan ürünler grafiği
+            const productsCtx = document.getElementById('productsChart').getContext('2d');
+            if (productsChart) productsChart.destroy();
+            
+            const topProducts = data.topProducts || [];
+            const productLabels = topProducts.map(p => p.productName || 'Bilinmeyen');
+            const productValues = topProducts.map(p => p.totalSold || 0);
+            
+            productsChart = new Chart(productsCtx, {
+                type: 'bar',
+                data: {
+                    labels: productLabels,
+                    datasets: [{
+                        label: 'Satılan Miktar',
+                        data: productValues,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(237, 100, 166, 0.8)',
+                            'rgba(255, 154, 158, 0.8)',
+                            'rgba(250, 208, 196, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+

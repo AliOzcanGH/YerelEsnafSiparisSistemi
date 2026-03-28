@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ürün Yönetimi - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+    <style>
+        .product-management {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .add-product-form {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .add-product-form h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn-submit {
+            background: #27ae60;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        
+        .btn-submit:hover {
+            background: #229954;
+        }
+        
+        .products-table {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .products-table h3 {
+            padding: 20px;
+            margin: 0;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-edit {
+            background: #3498db;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-edit:hover {
+            background: #2980b9;
+        }
+        
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+        
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .modal-close:hover {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                
+                <!-- Giriş yapmamış kullanıcılar için -->
+                <span sec:authorize="!isAuthenticated()">
+                    <a th:href="@{/login}">Giriş</a>
+                    <a th:href="@{/register}">Kayıt Ol</a>
+                </span>
+                
+                <!-- MÜŞTERİ menüsü -->
+                <span sec:authorize="hasRole('CUSTOMER')">
+                    <a th:href="@{/cart}">Sepet</a>
+                    <a th:href="@{/orders}">Siparişlerim</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ESNAF menüsü -->
+                <span sec:authorize="hasRole('SHOP_OWNER')">
+                    <a th:href="@{/my-products}">Ürünlerim</a>
+                    <a th:href="@{/shop-orders}">Siparişler</a>
+                    <a th:href="@{/dashboard}">📊 Dashboard</a>
+                    <a th:href="@{/profile}"> Profil</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+                
+                <!-- ADMIN menüsü -->
+                <span sec:authorize="hasRole('ADMIN')">
+                    <a th:href="@{/admin}">👑 Admin</a>
+                    <a th:href="@{/logout}">Çıkış</a>
+                </span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="product-management">
+        <div class="add-product-form">
+            <h3 id="formTitle">Yeni Ürün Ekle</h3>
+            <form id="productForm">
+                <input type="hidden" id="productId">
+                <div class="form-group">
+                    <label for="productName">Ürün Adı *</label>
+                    <input type="text" id="productName" required>
+                </div>
+                <div class="form-group">
+                    <label for="productDescription">Açıklama</label>
+                    <textarea id="productDescription"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productPrice">Fiyat (₺) *</label>
+                        <input type="number" id="productPrice" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productStock">Stok *</label>
+                        <input type="number" id="productStock" min="0" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="productImage">Ürün Görseli</label>
+                    <input type="file" id="productImage" accept="image/*" style="margin-bottom: 10px;">
+                    <div id="imagePreview" style="display: none; margin-top: 10px;">
+                        <img id="previewImg" src="" alt="Önizleme" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #ddd;">
+                        <button type="button" id="removeImage" style="display: block; margin-top: 8px; background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Görseli Kaldır</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Kaydet</button>
+                <button type="button" class="btn-submit" id="cancelEdit" style="background: #95a5a6; display: none; margin-left: 10px;">İptal</button>
+            </form>
+        </div>
+
+        <div class="products-table">
+            <h3>Ürünlerim</h3>
+            <div id="productsTableContainer">
+                <div class="empty-state">Yükleniyor...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = '/api';
+        let editingProductId = null;
+        let currentImageUrl = null;
+
+        // Sayfa yüklendiğinde ürünleri getir
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMyProducts();
+            
+            document.getElementById('productForm').addEventListener('submit', handleSubmit);
+            document.getElementById('cancelEdit').addEventListener('click', cancelEdit);
+            
+            // Görsel upload event'leri
+            document.getElementById('productImage').addEventListener('change', handleImageUpload);
+            document.getElementById('removeImage').addEventListener('click', removeImage);
+        });
+
+        // Ürünleri yükle
+        async function loadMyProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/products/my-products`);
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    renderProducts(data);
+                } else if (data.error) {
+                    showError(data.error);
+                }
+            } catch (error) {
+                showError('Ürünler yüklenirken hata oluştu');
+            }
+        }
+
+        // Ürünleri listele
+        function renderProducts(products) {
+            const container = document.getElementById('productsTableContainer');
+            
+            if (!products || products.length === 0) {
+                container.innerHTML = '<div class="empty-state">Henüz ürün eklemediniz.</div>';
+                return;
+            }
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Ürün Adı</th>
+                            <th>Açıklama</th>
+                            <th>Fiyat</th>
+                            <th>Stok</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${products.map(product => `
+                            <tr>
+                                <td>${product.name}</td>
+                                <td>${product.description || '-'}</td>
+                                <td>₺${product.price.toFixed(2)}</td>
+                                <td>${product.stock}</td>
+                                <td>
+                                    <div class="actions">
+                                        <button class="btn-edit" onclick="editProduct(${product.id})">Düzenle</button>
+                                        <button class="btn-delete" onclick="deleteProduct(${product.id})">Sil</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+
+        // Görsel yükleme
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Dosya boyutu kontrolü (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                alert('Görsel boyutu en fazla 2MB olabilir!');
+                e.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                currentImageUrl = event.target.result;
+                document.getElementById('previewImg').src = currentImageUrl;
+                document.getElementById('imagePreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Görseli kaldır
+        function removeImage() {
+            currentImageUrl = null;
+            document.getElementById('productImage').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('previewImg').src = '';
+        }
+
+        // Form gönderimi
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            const productData = {
+                name: document.getElementById('productName').value,
+                description: document.getElementById('productDescription').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stock: parseInt(document.getElementById('productStock').value),
+                imageUrl: currentImageUrl || null
+            };
+
+            try {
+                let response;
+                
+                if (editingProductId) {
+                    // Güncelleme
+                    response = await fetch(`${API_BASE}/products/${editingProductId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productData)
+                    });
+                } else {
+                    // Yeni ekleme
+                    response = await fetch(`${API_BASE}/products`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productData)
+                    });
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Bilinmeyen hata' }));
+                    throw new Error(errorData.error || `HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                showSuccess(editingProductId ? 'Ürün güncellendi!' : 'Ürün eklendi!');
+                resetForm();
+                loadMyProducts();
+            } catch (error) {
+                console.error('Ürün ekleme/güncelleme hatası:', error);
+                showError('Bir hata oluştu: ' + (error.message || 'Bilinmeyen hata'));
+            }
+        }
+
+        // Ürünü düzenle
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`${API_BASE}/products/${id}`);
+                const product = await response.json();
+                
+                if (product) {
+                    editingProductId = id;
+                    document.getElementById('formTitle').textContent = 'Ürünü Düzenle';
+                    document.getElementById('productId').value = id;
+                    document.getElementById('productName').value = product.name;
+                    document.getElementById('productDescription').value = product.description || '';
+                    document.getElementById('productPrice').value = product.price;
+                    document.getElementById('productStock').value = product.stock;
+                    document.getElementById('cancelEdit').style.display = 'inline-block';
+                    
+                    // Görseli yükle
+                    if (product.imageUrl) {
+                        currentImageUrl = product.imageUrl;
+                        document.getElementById('previewImg').src = product.imageUrl;
+                        document.getElementById('imagePreview').style.display = 'block';
+                    }
+                    
+                    // Forma scroll
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            } catch (error) {
+                showError('Ürün yüklenirken hata oluştu');
+            }
+        }
+
+        // Ürünü sil
+        async function deleteProduct(id) {
+            if (!confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/products/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showSuccess('Ürün silindi!');
+                    loadMyProducts();
+                } else {
+                    showError(result.error || 'Silme işlemi başarısız');
+                }
+            } catch (error) {
+                showError('Bir hata oluştu');
+            }
+        }
+
+        // Düzenlemeyi iptal et
+        function cancelEdit() {
+            resetForm();
+        }
+        
+        // Formu sıfırla
+        function resetForm() {
+            editingProductId = null;
+            currentImageUrl = null;
+            document.getElementById('formTitle').textContent = 'Yeni Ürün Ekle';
+            document.getElementById('productForm').reset();
+            document.getElementById('cancelEdit').style.display = 'none';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('previewImg').src = '';
+        }
+
+        // Başarı mesajı
+        function showSuccess(message) {
+            alert(message);
+        }
+
+        // Hata mesajı
+        function showError(message) {
+            alert('Hata: ' + message);
+        }
+    </script>
+</body>
+</html>
+

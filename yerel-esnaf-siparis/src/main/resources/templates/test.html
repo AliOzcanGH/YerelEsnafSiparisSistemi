@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Verisi - Yerel Esnaf Sipariş Sistemi</title>
+    <link rel="stylesheet" th:href="@{/style.css}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Esnaf</h1>
+            <nav>
+                <a th:href="@{/}">Ana Sayfa</a>
+                <a th:href="@{/login}">Giriş</a>
+                <a th:href="@{/register}">Kayıt Ol</a>
+                <a th:href="@{/cart}">Sepet</a>
+                <a th:href="@{/test}">Test</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="test-section">
+            <h2>Test Verisi Ekleme</h2>
+            <p>API'lerin çalıştığını test etmek için örnek veriler ekleyebilirsin.</p>
+            
+            <div class="test-buttons">
+                <button onclick="addTestProducts()" class="test-button">Örnek Ürünler Ekle</button>
+                <button onclick="addTestUsers()" class="test-button">Örnek Kullanıcılar Ekle</button>
+                <button onclick="viewProducts()" class="test-button">Ürünleri Görüntüle</button>
+                <button onclick="clearData()" class="test-button danger">Verileri Temizle</button>
+            </div>
+            
+            <div id="testResults" class="test-results"></div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Yerel Esnaf Sipariş Sistemi</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = '/api';
+        
+        // Test ürünleri ekle
+        async function addTestProducts() {
+            const testProducts = [
+                {
+                    name: "Taze Ekmek",
+                    description: "Günlük taze ekmek",
+                    price: 5.50,
+                    stock: 50
+                },
+                {
+                    name: "Süt",
+                    description: "Günlük süt 1L",
+                    price: 8.75,
+                    stock: 30
+                },
+                {
+                    name: "Yumurta",
+                    description: "Çiftlik yumurtası (30'lu)",
+                    price: 45.00,
+                    stock: 20
+                },
+                {
+                    name: "Domates",
+                    description: "Taze domates (kg)",
+                    price: 12.50,
+                    stock: 25
+                },
+                {
+                    name: "Çay",
+                    description: "Demlik poşet çay",
+                    price: 25.00,
+                    stock: 100
+                }
+            ];
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const product of testProducts) {
+                try {
+                    const response = await fetch(`${API_BASE}/products`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(product)
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        console.error('Ürün ekleme hatası:', response.status);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error('Ürün ekleme hatası:', error);
+                }
+            }
+            
+            showResult(`✅ ${successCount} ürün eklendi, ❌ ${errorCount} hata`);
+        }
+        
+        // Test kullanıcıları ekle
+        async function addTestUsers() {
+            const testUsers = [
+                {
+                    username: "musteri1",
+                    password: "123456",
+                    email: "musteri1@example.com",
+                    role: "CUSTOMER"
+                },
+                {
+                    username: "esnaf1",
+                    password: "123456",
+                    email: "esnaf1@example.com",
+                    role: "SHOP_OWNER"
+                }
+            ];
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            for (const user of testUsers) {
+                try {
+                    const response = await fetch(`${API_BASE}/users/register`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(user)
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) {
+                    errorCount++;
+                }
+            }
+            
+            showResult(`✅ ${successCount} kullanıcı eklendi, ❌ ${errorCount} hata`);
+        }
+        
+        // Ürünleri görüntüle
+        async function viewProducts() {
+            try {
+                const response = await fetch(`${API_BASE}/products`);
+                const products = await response.json();
+                
+                let html = '<h3>Mevcut Ürünler:</h3><div class="product-list">';
+                products.forEach(product => {
+                    html += `
+                        <div class="product-item">
+                            <strong>${product.name}</strong> - ₺${product.price.toFixed(2)} 
+                            (Stok: ${product.stock})
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                showResult(html);
+            } catch (error) {
+                showResult('❌ Ürünler yüklenirken hata oluştu');
+            }
+        }
+        
+        // Verileri temizle
+        async function clearData() {
+            if (!confirm('Tüm verileri silmek istediğinizden emin misiniz?')) {
+                return;
+            }
+            
+            try {
+                // Önce siparişleri sil
+                const ordersResponse = await fetch(`${API_BASE}/orders`);
+                const orders = await ordersResponse.json();
+                
+                for (const order of orders) {
+                    await fetch(`${API_BASE}/orders/${order.id}`, { method: 'DELETE' });
+                }
+                
+                // Sonra ürünleri sil
+                const productsResponse = await fetch(`${API_BASE}/products`);
+                const products = await productsResponse.json();
+                
+                for (const product of products) {
+                    await fetch(`${API_BASE}/products/${product.id}`, { method: 'DELETE' });
+                }
+                
+                showResult('✅ Tüm veriler temizlendi');
+            } catch (error) {
+                showResult('❌ Veriler temizlenirken hata oluştu');
+            }
+        }
+        
+        // Sonuç göster
+        function showResult(message) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = message;
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
